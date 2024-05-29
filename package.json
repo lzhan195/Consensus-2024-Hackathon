@@ -1,0 +1,18 @@
+{
+  "name": "consensus-2024-hackathon",
+  "version": "1.0.0",
+  "description": "Project for Consensus 2024: decentralized dating app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.6",
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.4",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "ethers": "^6.12.1",
+    "hardhat": "^2.22.4"
+  }
+}
