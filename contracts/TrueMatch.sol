@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
+import "hardhat/console.sol";
 
-contract SmartDating {
+contract TrueMatch {
     struct Complaint {
         // The person who submit the complaint.
         address submitter;
@@ -25,12 +26,12 @@ contract SmartDating {
     mapping(address => uint) public balances;
     mapping(address => uint) public scores;
     mapping(bytes32 => Complaint) public complaints;
-    uint complaintValidPeriod;
-    uint initialSocre;
+    uint public complaintValidPeriod;
+    uint public initialScore;
 
-    constructor(uint _complaintValidPeriod, uint _initialScore) public {
+    constructor(uint _complaintValidPeriod, uint _initialScore) {
         complaintValidPeriod = _complaintValidPeriod;
-        initialSocre = _initialScore;
+        initialScore = _initialScore;
     }
 
     // addBalance add funds to your account. It's also used as the entrypoint of creating a profile.
@@ -39,8 +40,12 @@ contract SmartDating {
         uint curBalances = balances[sender];
         // New account, create the profile.
         if (curBalances == 0) {
-            scores[sender] = initialSocre;
+            scores[sender] = initialScore;
         }
         balances[sender] = curBalances + msg.value;
+    }
+
+    function getBalance(address user) public view returns (uint) {
+        return balances[user];
     }
 }
