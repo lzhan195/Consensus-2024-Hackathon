@@ -45,7 +45,11 @@ contract TrueMatch {
         balances[sender] = curBalances + msg.value;
     }
 
-    function getBalance(address user) public view returns (uint) {
+    function getBalance(address user) external view returns (uint) {
         return balances[user];
+    }
+
+    function getScore(address user) external view returns (uint) {
+        return scores[user];
     }
 }

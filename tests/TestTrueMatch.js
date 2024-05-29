@@ -29,12 +29,14 @@ describe("TrueMatch", function () {
             expect(await contract.initialScore()).to.equal(initialScore);
         });
 
-        it("Should add balance correctly", async function () {
+        it("Should add balance to initialize account correctly", async function () {
             const { complaint_period, initialScore, contract, owner, otherAccount } = await loadFixture(deployOneYearLockFixture);
             const ONE_GWEI = 1_000_000_000;
             await contract.connect(otherAccount).addBalance({ value: ONE_GWEI });
             let balance = await contract.getBalance(otherAccount);
             expect(balance).to.equal(ONE_GWEI);
+            let score = await contract.getScore(otherAccount);
+            expect(score).to.equal.(100);
         });
     });
 });
