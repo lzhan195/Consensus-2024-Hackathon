@@ -15,10 +15,12 @@ describe("TrueMatch", function () {
         const [owner, otherAccount] = await ethers.getSigners();
         const ONE_GWEI = 1_000_000_000;
         const complaint_period = 40_320;
+        const factorA = 1_000_000_000;
+        const factorB = 4;
         const initialScore = 100;
 
         const trueMatch = await ethers.getContractFactory("TrueMatch");
-        const contract = await trueMatch.deploy(complaint_period, initialScore);
+        const contract = await trueMatch.deploy(complaint_period, initialScore, factorA, factorB);
 
         return { complaint_period, initialScore, contract, owner, otherAccount };
     }
@@ -36,7 +38,7 @@ describe("TrueMatch", function () {
             let balance = await contract.getBalance(otherAccount);
             expect(balance).to.equal(ONE_GWEI);
             let score = await contract.getScore(otherAccount);
-            expect(score).to.equal.(100);
+            expect(score).to.equal(100);
         });
     });
 });

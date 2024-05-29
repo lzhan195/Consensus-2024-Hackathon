@@ -28,10 +28,21 @@ contract TrueMatch {
     mapping(bytes32 => Complaint) public complaints;
     uint public complaintValidPeriod;
     uint public initialScore;
+    // The minimum funds needed for the account the be eligible to use the app is:
+    // factorA/(factorB + score[user]).
+    uint public factorA;
+    uint public factorB;
 
-    constructor(uint _complaintValidPeriod, uint _initialScore) {
+    constructor(
+        uint _complaintValidPeriod,
+        uint _initialScore,
+        uint _factorA,
+        uint _factorB
+    ) {
         complaintValidPeriod = _complaintValidPeriod;
         initialScore = _initialScore;
+        factorA = _factorA;
+        factorB = _factorB;
     }
 
     // addBalance add funds to your account. It's also used as the entrypoint of creating a profile.
