@@ -1,6 +1,7 @@
 require("@nomicfoundation/hardhat-ignition");
-var fs = require("fs");
+require("@nomicfoundation/hardhat-toolbox");
 
+var fs = require("fs");
 var text = fs.readFileSync("./.privatekey").toString();
 var textByLine = text.split("\n")
 
