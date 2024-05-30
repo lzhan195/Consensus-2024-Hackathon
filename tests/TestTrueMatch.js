@@ -55,7 +55,11 @@ describe("TrueMatch", function () {
             await txOther.wait()
             await contract.connect(owner).addBalance({ value: ONE_GWEI });
             // It should return the MatchCreation event.
-            await expect(contract.connect(owner).sendMatchRequest(otherAccount)).to.emit(contract, "MatchCreation");
+            const tx = contract.connect(owner).sendMatchRequest(otherAccount)
+            await expect(tx).to.emit(contract, "MatchCreation");
+            const onwerMatchHash = await contract.userMatches(owner, 0);
+            const userMatchHash = await contract.userMatches(otherAccount, 0);
+            expect(onwerMatchHash).to.be.equal(userMatchHash);
         });
     });
 });

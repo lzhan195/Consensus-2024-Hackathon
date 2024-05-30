@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "/Users/yanyichun/git_repos/rootstock/Consensus-2024-Hackathon/contracts/TrueMatch.sol": {
-      "lastModificationDate": 1717022117540,
-      "contentHash": "fe8b2c580183a34e6fc687287c8e5e9a",
+      "lastModificationDate": 1717037989016,
+      "contentHash": "bdd415bd89074596da129c2e33c9be33",
       "sourceName": "contracts/TrueMatch.sol",
       "solcConfig": {
         "version": "0.8.24",
@@ -29,9 +29,7 @@
           }
         }
       },
-      "imports": [
-        "hardhat/console.sol"
-      ],
+      "imports": [],
       "versionPragmas": [
         "^0.8.24"
       ],
