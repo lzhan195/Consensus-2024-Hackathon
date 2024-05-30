@@ -371,6 +371,9 @@ ENV/
 .mypy_cache/
 testeth
 .idea
-node_modules
+**/node_modules
 bin_output
 logs
+
+# next
+**/.next
