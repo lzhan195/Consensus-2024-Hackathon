@@ -16,7 +16,7 @@ describe("TrueMatch", function () {
         const ONE_GWEI = 1_000_000_000;
         const complaint_period = 40_320;
         const factorA = 1_000_000_000;
-        const factorB = 4;
+        const factorB = 100;
         const initialScore = 100;
 
         const trueMatch = await ethers.getContractFactory("TrueMatch");
@@ -39,6 +39,23 @@ describe("TrueMatch", function () {
             expect(balance).to.equal(ONE_GWEI);
             let score = await contract.getScore(otherAccount);
             expect(score).to.equal(100);
+        });
+
+        it("Should block non-exist user from sending match request", async function () {
+            const { complaint_period, initialScore, contract, owner, otherAccount } = await loadFixture(deployOneYearLockFixture);
+            const ONE_GWEI = 1_000_000_000;
+            await expect(contract.connect(otherAccount).sendMatchRequest(owner)).to.be.reverted;
+        });
+
+        it("Should allow user with fund to send match request", async function () {
+            const { complaint_period, initialScore, contract, owner, otherAccount } = await loadFixture(deployOneYearLockFixture);
+            const ONE_GWEI = 1_000_000_000;
+            await contract.connect(otherAccount).addBalance({ value: ONE_GWEI });
+            let txOther = await contract.connect(otherAccount).sendMatchRequest(owner);
+            await txOther.wait()
+            await contract.connect(owner).addBalance({ value: ONE_GWEI });
+            // It should return the MatchCreation event.
+            await expect(contract.connect(owner).sendMatchRequest(otherAccount)).to.emit(contract, "MatchCreation");
         });
     });
 });
