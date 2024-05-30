@@ -1,0 +1,7 @@
+{
+    "projectName": "Consensus2024Hackathon",
+    "namespace": "Consensus2024Hackathon.Contracts",
+    "lang": 0,
+    "autoCodeGen": true,
+    "projectPath": "../"
+}

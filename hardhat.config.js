@@ -6,7 +6,7 @@ var text = fs.readFileSync("./.privatekey").toString();
 var textByLine = text.split("\n")
 
 module.exports = {
-  defaultNetwork: "rootstock_test",
+  defaultNetwork: "hardhat",
   networks: {
     hardhat: {
       accounts: {
@@ -35,7 +35,7 @@ module.exports = {
   },
   paths: {
     sources: "./contracts",
-    tests: "./test",
+    tests: "./tests",
     cache: "./cache",
     artifacts: "./artifacts"
   },
