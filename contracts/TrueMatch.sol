@@ -172,9 +172,19 @@ contract TrueMatch {
         bytes32 matchId,
         bool voteForSupport
     ) public payable {
-        Compliant memory currentCompliant = compliants[matchId];
+        Compliant storage currentCompliant = compliants[matchId];
         if (block.number - currentCompliant.blockNum > compliantValidPeriod) {
             revert("the compliant isn't valid anymore");
         }
+        address user = msg.sender;
+        uint value = msg.value;
+        if (voteForSupport) {
+            currentCompliant.supporters.push(user);
+            currentCompliant.supportersStake.push(value);
+        } else {
+            currentCompliant.doubters.push(user);
+            currentCompliant.doubtersStake.push(value);
+        }
+        compliants[matchId] = currentCompliant;
     }
 }
