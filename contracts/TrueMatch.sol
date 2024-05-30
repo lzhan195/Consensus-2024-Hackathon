@@ -1,19 +1,24 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract TrueMatch {
-    struct Complaint {
-        // The person who submit the complaint.
+    struct Compliant {
+        // The person who submit the compliant.
         address submitter;
-        // Supporters are the group of peole who think the complaint is valid.
+        // Supporters are the group of peole who think the compliant is valid.
         address[] supporters;
-        // Doubters are the group of people who think the complaint is invalid.
+        // Doubters are the group of people who think the compliant is invalid.
         address[] doubters;
-        // Record when the complaint is issued. The complaint is only valid for pre-defined number of blocks.
-        uint blocknumber;
-        bytes32 descHash;
+        // supportersStake is the value that the supporters have put in this compliant.
+        uint[] supportersStake;
+        // doubtersStake is the value that the doubters have put in this compliant.
+        uint[] doubtersStake;
+        // Record when the compliant is issued. The compliant is only valid for pre-defined number of blocks.
+        uint blockNum;
+        string desc;
         bytes32 matchId;
+        address receiver;
     }
 
     struct MatchReq {
@@ -37,7 +42,9 @@ contract TrueMatch {
         bytes32 matchId
     );
 
-    uint public complaintValidPeriod;
+    // Measured by block number. It's used for judging whether a pending a Compliant is valid anymore.
+    // If block.number - MatchReq.blockNum > compliantValidPeriod, then it's not valid.
+    uint public compliantValidPeriod;
     uint public initialScore;
     // The minimum funds needed for the account the be eligible to use the app is:
     // factorA//(factorB + score[user]).
@@ -46,17 +53,18 @@ contract TrueMatch {
     // Records how much stakes left for a user.
     mapping(address => uint) public balances;
     mapping(address => uint) public scores;
-    mapping(bytes32 => Complaint) public complaints;
+    mapping(bytes32 => Compliant) public compliants;
     mapping(address => MatchReq[]) public pendingMatches;
     mapping(bytes32 => Match) public matches;
+    mapping(address => bytes32[]) public userMatches;
 
     constructor(
-        uint _complaintValidPeriod,
+        uint _compliantValidPeriod,
         uint _initialScore,
         uint _factorA,
         uint _factorB
     ) {
-        complaintValidPeriod = _complaintValidPeriod;
+        compliantValidPeriod = _compliantValidPeriod;
         initialScore = _initialScore;
         factorA = _factorA;
         factorB = _factorB;
@@ -65,7 +73,7 @@ contract TrueMatch {
     modifier enoughFunds() {
         address user = msg.sender;
         uint balance = balances[user];
-        uint minimum = factorA / (factorB + scores[user]);
+        uint minimum = minimumFunds(user);
         require(balance >= minimum);
         _;
     }
@@ -74,6 +82,10 @@ contract TrueMatch {
         address user = msg.sender;
         require(balances[user] > 0);
         _;
+    }
+
+    function minimumFunds(address user) public view returns (uint) {
+        return factorA / (factorB + scores[user]);
     }
 
     // addBalance add funds to your account. It's also used as the entrypoint of creating a profile.
@@ -114,7 +126,8 @@ contract TrueMatch {
                     matchId: matchHash,
                     blockNum: block.number
                 });
-                console.log("get here");
+                userMatches[user].push(matchHash);
+                userMatches[receiver].push(matchHash);
                 // Return two events which are indexed for both users.
                 emit MatchCreation(user, receiver, matchHash);
                 emit MatchCreation(receiver, user, matchHash);
@@ -129,5 +142,90 @@ contract TrueMatch {
         pendingMatches[user].push(pending);
         // Returns 0 if the request is still pending.
         return bytes32(0);
+    }
+
+    function sendcompliants(bytes32 matchId, string memory desc) public {
+        Match memory currentReq = matches[matchId];
+        address user = msg.sender;
+        if (!(currentReq.userFirst == user || currentReq.userSecond == user)) {
+            revert(
+                "can't submit compliant to a match that doesn't belong to you"
+            );
+        }
+        Compliant memory currentComp = compliants[matchId];
+        if (currentComp.submitter == user) {
+            revert("can't submit duplicated compliants");
+        }
+        address[] memory supporters;
+        address[] memory doubters;
+        uint[] memory supportersStake;
+        uint[] memory doubtersStake;
+        Compliant memory comp = Compliant({
+            submitter: user,
+            blockNum: block.number,
+            supporters: supporters,
+            doubters: doubters,
+            supportersStake: supportersStake,
+            doubtersStake: doubtersStake,
+            desc: desc,
+            matchId: matchId,
+            receiver: currentComp.receiver
+        });
+        compliants[matchId] = comp;
+    }
+
+    function verdictCompliant(
+        bytes32 matchId,
+        bool voteForSupport
+    ) public payable {
+        Compliant storage currentCompliant = compliants[matchId];
+        if (block.number - currentCompliant.blockNum > compliantValidPeriod) {
+            revert("the compliant isn't valid anymore");
+        }
+        address user = msg.sender;
+        uint value = msg.value;
+        if (voteForSupport) {
+            currentCompliant.supporters.push(user);
+            currentCompliant.supportersStake.push(value);
+        } else {
+            currentCompliant.doubters.push(user);
+            currentCompliant.doubtersStake.push(value);
+        }
+        compliants[matchId] = currentCompliant;
+    }
+
+    // Anyone can send transaction to settle any outdated compliant.
+    function settleDownCompliant(bytes32 matchId) public payable {
+        Compliant storage currentCompliant = compliants[matchId];
+        if (currentCompliant.blockNum == 0) {
+            revert("compliant doesn't exist");
+        }
+        if (block.number - currentCompliant.blockNum <= compliantValidPeriod) {
+            revert("compliant can't be settled down right now");
+        }
+        uint totalSupporterValue;
+        uint totalDoubterValue;
+        for (uint i = 0; i < currentCompliant.supporters.length; i++) {
+            totalSupporterValue += currentCompliant.supportersStake[i];
+        }
+        for (uint i = 0; i < currentCompliant.doubters.length; i++) {
+            totalDoubterValue += currentCompliant.doubtersStake[i];
+        }
+        uint miniFunds = minimumFunds(currentCompliant.receiver);
+        uint totalValue = totalSupporterValue + totalDoubterValue + miniFunds;
+        balances[currentCompliant.receiver] -= miniFunds;
+        if (totalSupporterValue > totalDoubterValue) {
+            for (uint i = 0; i < currentCompliant.supporters.length; i++) {
+                balances[currentCompliant.supporters[i]] +=
+                    (totalValue * currentCompliant.supportersStake[i]) /
+                    totalSupporterValue;
+            }
+        } else {
+            for (uint i = 0; i < currentCompliant.doubters.length; i++) {
+                balances[currentCompliant.doubters[i]] +=
+                    (totalValue * currentCompliant.doubtersStake[i]) /
+                    totalSupporterValue;
+            }
+        }
     }
 }
