@@ -18,6 +18,7 @@ contract TrueMatch {
         uint blockNum;
         string desc;
         bytes32 matchId;
+        address receiver;
     }
 
     struct MatchReq {
@@ -72,7 +73,7 @@ contract TrueMatch {
     modifier enoughFunds() {
         address user = msg.sender;
         uint balance = balances[user];
-        uint minimum = factorA / (factorB + scores[user]);
+        uint minimum = minimumFunds(user);
         require(balance >= minimum);
         _;
     }
@@ -81,6 +82,10 @@ contract TrueMatch {
         address user = msg.sender;
         require(balances[user] > 0);
         _;
+    }
+
+    function minimumFunds(address user) public view returns (uint) {
+        return factorA / (factorB + scores[user]);
     }
 
     // addBalance add funds to your account. It's also used as the entrypoint of creating a profile.
@@ -163,12 +168,13 @@ contract TrueMatch {
             supportersStake: supportersStake,
             doubtersStake: doubtersStake,
             desc: desc,
-            matchId: matchId
+            matchId: matchId,
+            receiver: currentComp.receiver
         });
         compliants[matchId] = comp;
     }
 
-    function verdictcompliant(
+    function verdictCompliant(
         bytes32 matchId,
         bool voteForSupport
     ) public payable {
@@ -186,5 +192,40 @@ contract TrueMatch {
             currentCompliant.doubtersStake.push(value);
         }
         compliants[matchId] = currentCompliant;
+    }
+
+    // Anyone can send transaction to settle any outdated compliant.
+    function settleDownCompliant(bytes32 matchId) public payable {
+        Compliant storage currentCompliant = compliants[matchId];
+        if (currentCompliant.blockNum == 0) {
+            revert("compliant doesn't exist");
+        }
+        if (block.number - currentCompliant.blockNum <= compliantValidPeriod) {
+            revert("compliant can't be settled down right now");
+        }
+        uint totalSupporterValue;
+        uint totalDoubterValue;
+        for (uint i = 0; i < currentCompliant.supporters.length; i++) {
+            totalSupporterValue += currentCompliant.supportersStake[i];
+        }
+        for (uint i = 0; i < currentCompliant.doubters.length; i++) {
+            totalDoubterValue += currentCompliant.doubtersStake[i];
+        }
+        uint miniFunds = minimumFunds(currentCompliant.receiver);
+        uint totalValue = totalSupporterValue + totalDoubterValue + miniFunds;
+        balances[currentCompliant.receiver] -= miniFunds;
+        if (totalSupporterValue > totalDoubterValue) {
+            for (uint i = 0; i < currentCompliant.supporters.length; i++) {
+                balances[currentCompliant.supporters[i]] +=
+                    (totalValue * currentCompliant.supportersStake[i]) /
+                    totalSupporterValue;
+            }
+        } else {
+            for (uint i = 0; i < currentCompliant.doubters.length; i++) {
+                balances[currentCompliant.doubters[i]] +=
+                    (totalValue * currentCompliant.doubtersStake[i]) /
+                    totalSupporterValue;
+            }
+        }
     }
 }
